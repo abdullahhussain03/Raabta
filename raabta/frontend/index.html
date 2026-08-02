@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Raabta — The Verified Network for Pakistani Students</title>
+    <meta
+      name="description"
+      content="Raabta is the verified, student-only community platform for Pakistani universities. Join your campus community, share resources, and connect with real, verified students."
+    />
+    <link rel="canonical" href="https://raabta.app/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Raabta — The Verified Network for Pakistani Students" />
+    <meta
+      property="og:description"
+      content="Join your university's verified student community. Share resources, form groups, and connect — safely."
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://raabta.app/" />
+
+    <!-- Everything past the landing page is a logged-in experience and
+         should not be indexed. Route-level noindex is also applied via
+         <meta name="robots"> injected by AppShell for authenticated routes;
+         this default covers the case where the SPA shell itself is crawled
+         before JS runs. -->
+    <meta name="robots" content="index, follow" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-base text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

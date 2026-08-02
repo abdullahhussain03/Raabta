@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+::selection {
+  background-color: rgba(108, 92, 231, 0.35);
+}
+
+/* Visible keyboard focus everywhere — accessibility floor, not optional */
+:focus-visible {
+  outline: 2px solid #6C5CE7;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #2A2A3C;
+  border-radius: 999px;
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-lg bg-base border border-base-border px-3.5 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-brand-500 transition-colors;
+  }
+  .card {
+    @apply rounded-2xl border border-base-border bg-base-surface shadow-card;
+  }
+  .btn-primary {
+    @apply rounded-xl bg-brand-500 hover:bg-brand-600 transition-colors px-5 py-2.5 text-sm font-medium disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply rounded-xl border border-base-border hover:bg-base-raised transition-colors px-5 py-2.5 text-sm font-medium disabled:opacity-60;
+  }
+}

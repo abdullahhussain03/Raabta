@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /feed
+Disallow: /communities/
+Disallow: /groups/
+Disallow: /resources
+Disallow: /messages
+Disallow: /profile
+Disallow: /admin
+Disallow: /verify-email
+Disallow: /reset-password
+
+Sitemap: https://raabta.app/sitemap.xml
