@@ -3,13 +3,13 @@ const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const { sanitizeFields } = require('../middleware/sanitize');
-const { upload } = require('../middleware/upload');
+const { uploadImage, enforceCloudinaryLimits } = require('../middleware/upload');
 const ctrl = require('../controllers/userController');
 
 const router = express.Router();
 
 router.get('/:id', requireAuth, ctrl.getProfile);
-router.post('/me/profile-picture', requireAuth, upload.single('file'), ctrl.uploadProfilePicture);
+router.post('/me/profile-picture', requireAuth, uploadImage.single('file'), enforceCloudinaryLimits, ctrl.uploadProfilePicture);
 router.patch(
   '/me',
   requireAuth,

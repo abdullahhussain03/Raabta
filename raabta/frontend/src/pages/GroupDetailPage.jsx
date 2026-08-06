@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Camera, Send } from 'lucide-react';
 import api from '../api/client';
 import PostComposer from '../components/PostComposer';
 import PostCard from '../components/PostCard';
+import GroupAvatar from '../components/GroupAvatar';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../components/PostCard';
+import { MAX_IMAGE_MB } from '../lib/uploadLimits';
 import { EmptyState } from './FeedPage';
 
 const POLL_MS = 4000;
@@ -27,10 +29,18 @@ export default function GroupDetailPage() {
   return (
     <div>
       {group && (
-        <div className="mb-5">
-          <p className="text-xs text-brand-300 font-medium uppercase tracking-wide mb-1">{group.category}</p>
-          <h1 className="font-display text-xl font-bold mb-1">{group.name}</h1>
-          <p className="text-sm text-white/50">{group.description}</p>
+        <div className="mb-5 flex items-start gap-4">
+          <div className="relative shrink-0">
+            <GroupAvatar group={group} size={64} />
+            {isMember && (
+              <ChangeDpButton group={group} onChanged={(g) => setGroup(g)} />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-brand-300 font-medium uppercase tracking-wide mb-1">{group.category}</p>
+            <h1 className="font-display text-xl font-bold mb-1">{group.name}</h1>
+            <p className="text-sm text-white/50">{group.description}</p>
+          </div>
         </div>
       )}
 
@@ -59,6 +69,55 @@ export default function GroupDetailPage() {
         </div>
       ) : (
         <GroupChat groupId={id} isMember={isMember} />
+      )}
+    </div>
+  );
+}
+
+// Overlay button on the group avatar: opens a file picker (members only)
+// and uploads the new photo via POST /groups/:id/dp.
+function ChangeDpButton({ group, onChanged }) {
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const pick = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+      setError(`Group photos are limited to ${MAX_IMAGE_MB}MB.`);
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await api.post(`/groups/${group._id}/dp`, fd);
+      onChanged(data.group);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not update the group photo.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="absolute -bottom-1.5 -right-1.5">
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={pick} />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        title="Change group photo"
+        aria-label="Change group photo"
+        className="h-8 w-8 rounded-full bg-base-surface border border-base-border text-white/70 hover:text-white hover:bg-base-raised flex items-center justify-center disabled:opacity-50"
+      >
+        <Camera size={14} />
+      </button>
+      {error && (
+        <p className="absolute right-0 top-9 w-48 text-right text-[11px] text-accent-rose">{error}</p>
       )}
     </div>
   );

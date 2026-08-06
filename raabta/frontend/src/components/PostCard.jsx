@@ -64,7 +64,23 @@ export default function PostCard({ post, onChanged }) {
         </div>
       </div>
 
-      <p className="text-sm text-white/85 whitespace-pre-wrap leading-relaxed mb-4">{post.content}</p>
+      {post.content && <p className="text-sm text-white/85 whitespace-pre-wrap leading-relaxed mb-4">{post.content}</p>}
+
+      {post.mediaUrl && post.mediaType === 'video' ? (
+        <video
+          src={post.mediaUrl}
+          controls
+          preload="metadata"
+          className="rounded-xl w-full max-h-[420px] object-contain bg-black/40 mb-4"
+        />
+      ) : post.mediaUrl ? (
+        <img
+          src={post.mediaUrl}
+          alt=""
+          loading="lazy"
+          className="rounded-xl w-full max-h-[420px] object-cover mb-4"
+        />
+      ) : null}
 
       <div className="flex items-center gap-5 text-white/50 text-sm">
         <button onClick={toggleUpvote} className={`flex items-center gap-1.5 ${upvoted ? 'text-brand-300' : 'hover:text-white'}`}>

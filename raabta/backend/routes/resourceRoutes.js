@@ -2,7 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
+const { upload, enforceCloudinaryLimits } = require('../middleware/upload');
 const { sanitizeFields } = require('../middleware/sanitize');
 const ctrl = require('../controllers/resourceController');
 
@@ -13,6 +13,7 @@ router.post(
   '/',
   requireAuth,
   upload.single('file'),
+  enforceCloudinaryLimits,
   sanitizeFields(['courseName', 'description']),
   [
     body('courseCode').trim().isLength({ min: 2, max: 20 }),

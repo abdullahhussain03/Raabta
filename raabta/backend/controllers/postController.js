@@ -2,13 +2,25 @@ const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const Community = require('../models/Community');
 const Group = require('../models/Group');
+const cloudinary = require('../config/cloudinary');
+const { uploadBufferToCloudinary, mimeToFileType } = require('../middleware/upload');
 
 // A post belongs to exactly one of community/group — validated at the
 // schema level too, but we double-check here for a clean 400 instead of a
 // 500 from the pre-validate hook.
 exports.create = async (req, res, next) => {
   try {
-    const { content, communityId, groupId, isAnonymous } = req.body;
+    const { communityId, groupId } = req.body;
+    const content = (req.body.content || '').trim();
+    // isAnonymous arrives as a JSON boolean, but as a string ('true'/'false'/'on')
+    // from multipart forms — normalize both.
+    const isAnon = req.body.isAnonymous === true || req.body.isAnonymous === 'true' || req.body.isAnonymous === 'on';
+
+    // A post needs text, a media attachment, or both.
+    if (!content && !req.file) {
+      return res.status(400).json({ message: 'A post needs text, a photo/video, or both.' });
+    }
+
     if (!!communityId === !!groupId) {
       return res.status(400).json({ message: 'Provide exactly one of communityId or groupId.' });
     }
@@ -25,13 +37,46 @@ exports.create = async (req, res, next) => {
       if (!community) return res.status(404).json({ message: 'Community not found' });
     }
 
-    const post = await Post.create({
-      author: req.user._id,
-      community: communityId || null,
-      group: groupId || null,
-      content,
-      isAnonymous: !!isAnonymous,
-    });
+    // Optional media attachment — uploaded to Cloudinary, mirroring the
+    // course-resources flow (see resourceController.upload). Documents are
+    // already rejected at the multer fileFilter for this route, so any file
+    // that reaches here is an image or video. Media is shown for anonymous
+    // posts too — the attachment itself isn't identity-revealing.
+    let mediaUrl = null;
+    let mediaType = null;
+    let uploadedPublicId = null;
+    if (req.file) {
+      const fileType = mimeToFileType(req.file.mimetype); // 'image' | 'video'
+      if (!fileType) {
+        return res.status(400).json({ message: 'Post media must be an image or video.' });
+      }
+      const result = await uploadBufferToCloudinary(req.file.buffer, {
+        folder: `raabta/posts/${req.user.university}`,
+        filenameHint: req.file.originalname,
+      });
+      mediaUrl = result.secure_url;
+      mediaType = fileType;
+      uploadedPublicId = result.public_id;
+    }
+
+    let post;
+    try {
+      post = await Post.create({
+        author: req.user._id,
+        community: communityId || null,
+        group: groupId || null,
+        content,
+        isAnonymous: isAnon,
+        mediaUrl,
+        mediaType,
+      });
+    } catch (err) {
+      // If the DB write fails, don't leave an orphaned asset in Cloudinary.
+      if (uploadedPublicId) {
+        cloudinary.uploader.destroy(uploadedPublicId).catch(() => {});
+      }
+      throw err;
+    }
 
     const populated = await Post.findById(post._id).populate('author', 'name profilePicture');
     res.status(201).json({ post: populated.toPublicJSON(false) });

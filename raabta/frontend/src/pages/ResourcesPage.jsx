@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, Upload, Download, FileText } from 'lucide-react';
 import api from '../api/client';
 import { trackEvent } from '../lib/analytics';
+import { MAX_DOC_MB } from '../lib/uploadLimits';
 import { EmptyState } from './FeedPage';
 
 export default function ResourcesPage() {
@@ -91,6 +92,9 @@ function UploadModal({ onClose, onUploaded }) {
   const submit = async (e) => {
     e.preventDefault();
     if (!file) return setError('Please choose a file.');
+    if (file.size > MAX_DOC_MB * 1024 * 1024) {
+      return setError(`Files are limited to ${MAX_DOC_MB}MB on the current Cloudinary plan.`);
+    }
     setSaving(true);
     setError('');
     try {
@@ -116,7 +120,7 @@ function UploadModal({ onClose, onUploaded }) {
           <input required placeholder="Course name" value={form.courseName} onChange={(e) => setForm({ ...form, courseName: e.target.value })} className="input" />
           <textarea placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[70px]" />
           <input required type="file" accept=".pdf,.docx,.pptx,image/*" onChange={(e) => setFile(e.target.files[0])} className="input" />
-          <p className="text-xs text-white/40">PDF, DOCX, PPTX, or images — up to 20MB.</p>
+          <p className="text-xs text-white/40">PDF, DOCX, PPTX, or images — up to {MAX_DOC_MB}MB.</p>
           {error && <p className="text-accent-rose text-sm">{error}</p>}
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={saving} className="btn-primary flex-1">{saving ? 'Uploading…' : 'Upload'}</button>

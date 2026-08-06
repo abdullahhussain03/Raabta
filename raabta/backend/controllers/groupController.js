@@ -1,11 +1,22 @@
 const Group = require('../models/Group');
 const GroupMessage = require('../models/GroupMessage');
+const { uploadBufferToCloudinary } = require('../middleware/upload');
 
 // Any verified student can create a group; name+description+category are
 // required (enforced at the schema level too) to keep out empty/junk groups.
+// An optional group photo (`file` field, image only) is uploaded to
+// Cloudinary when present.
 exports.create = async (req, res, next) => {
   try {
     const { name, description, category } = req.body;
+    let profilePicture = null;
+    if (req.file) {
+      const result = await uploadBufferToCloudinary(req.file.buffer, {
+        folder: 'raabta/groups',
+        filenameHint: `group-${Date.now()}`,
+      });
+      profilePicture = result.secure_url;
+    }
     const group = await Group.create({
       name,
       description,
@@ -13,6 +24,7 @@ exports.create = async (req, res, next) => {
       university: req.user.university,
       createdBy: req.user._id,
       members: [req.user._id],
+      profilePicture,
     });
     res.status(201).json({ group });
   } catch (err) {
@@ -28,8 +40,20 @@ exports.list = async (req, res, next) => {
     const filter = { university: req.user.university };
     if (!includeInactive) filter.isActive = true;
 
-    const groups = await Group.find(filter).sort('-lastActivityAt').select('-members');
-    res.json({ groups });
+    // Members are needed server-side to compute isMember, but the full
+    // members array is never exposed in the browse list — only a boolean
+    // telling the UI whether the current user has already joined.
+    const groups = await Group.find(filter).sort('-lastActivityAt');
+    const userId = req.user._id.toString();
+    res.json({
+      groups: groups.map((g) => {
+        const obj = g.toObject();
+        obj.isMember = (obj.members || []).some((m) => m.toString() === userId);
+        obj.memberCount = (obj.members || []).length;
+        delete obj.members;
+        return obj;
+      }),
+    });
   } catch (err) {
     next(err);
   }
@@ -55,6 +79,55 @@ exports.join = async (req, res, next) => {
       group.isActive = true;
       await group.save();
     }
+    res.json({ group, isMember: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Groups the current user has joined — powers the "My Groups" section on
+// the dashboard. Scoped to the user's university like every other group
+// query. Stale/inactive groups a user is still a member of stay visible
+// here so they can always reach a group they joined.
+exports.mine = async (req, res, next) => {
+  try {
+    const groups = await Group.find({
+      university: req.user.university,
+      members: req.user._id,
+    }).sort('-lastActivityAt');
+
+    res.json({
+      groups: groups.map((g) => {
+        const obj = g.toObject();
+        obj.isMember = true;
+        obj.memberCount = (obj.members || []).length;
+        delete obj.members;
+        return obj;
+      }),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Set/update the group display picture. Any current member can do it;
+// the image is validated + Cloudinary-cap-enforced by the uploadImage /
+// enforceCloudinaryLimits middleware on the route.
+exports.uploadDp = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No image provided.' });
+    const group = await Group.findOne({ _id: req.params.id, university: req.user.university });
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+    if (!group.members.some((m) => m.toString() === req.user._id.toString())) {
+      return res.status(403).json({ message: 'Only group members can change the group photo.' });
+    }
+
+    const result = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: 'raabta/groups',
+      filenameHint: `group-${group._id}`,
+    });
+    group.profilePicture = result.secure_url;
+    await group.save();
     res.json({ group });
   } catch (err) {
     next(err);

@@ -8,8 +8,12 @@ const postSchema = new mongoose.Schema(
     community: { type: mongoose.Schema.Types.ObjectId, ref: 'Community', default: null },
     group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', default: null },
 
-    content: { type: String, required: true, trim: true, maxlength: 5000 }, // sanitized on input, see middleware/sanitize.js
-    imageUrl: { type: String, default: null },
+    // content is optional ONLY when a media attachment is present — a post
+    // needs text, media, or both (enforced in the controller, see
+    // postController.create). Sanitized on input, see middleware/sanitize.js.
+    content: { type: String, trim: true, maxlength: 5000, default: '' },
+    mediaUrl: { type: String, default: null },
+    mediaType: { type: String, enum: ['image', 'video', null], default: null },
 
     upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isPinned: { type: Boolean, default: false }, // admin/mod only

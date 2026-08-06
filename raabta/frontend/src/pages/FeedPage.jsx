@@ -4,6 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import PostComposer from '../components/PostComposer';
 import PostCard from '../components/PostCard';
+import GroupAvatar from '../components/GroupAvatar';
 
 export default function FeedPage() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function FeedPage() {
   const [activeCommunity, setActiveCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [myGroups, setMyGroups] = useState([]);
 
   useEffect(() => {
     api.get('/communities/mine').then(({ data }) => {
@@ -18,6 +20,7 @@ export default function FeedPage() {
       const general = data.communities.find((c) => c.type === 'general') || data.communities[0];
       setActiveCommunity(general || null);
     });
+    api.get('/groups/mine').then(({ data }) => setMyGroups(data.groups));
   }, []);
 
   useEffect(() => {
@@ -71,11 +74,30 @@ export default function FeedPage() {
             ))}
           </div>
         </div>
+        <div className="card p-4">
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-3">My Groups</p>
+          {myGroups.length === 0 ? (
+            <p className="text-xs text-white/40 mb-2">Join a group to pin it here.</p>
+          ) : (
+            <div className="space-y-1">
+              {myGroups.map((g) => (
+                <Link
+                  key={g._id}
+                  to={`/groups/${g._id}`}
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-white/70 hover:bg-base-raised hover:text-white"
+                >
+                  <GroupAvatar group={g} size={28} />
+                  <span className="truncate">{g.name}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+          <Link to="/groups" className="text-xs text-brand-300 mt-2 inline-block hover:underline">
+            Discover groups →
+          </Link>
+        </div>
         <Link to="/resources" className="card p-4 block text-sm text-white/70 hover:bg-base-raised">
           📄 Browse course resources
-        </Link>
-        <Link to="/groups" className="card p-4 block text-sm text-white/70 hover:bg-base-raised">
-          👥 Discover groups
         </Link>
       </aside>
     </div>

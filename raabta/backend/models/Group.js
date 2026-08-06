@@ -10,6 +10,10 @@ const groupSchema = new mongoose.Schema(
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
+    // Group display picture (Cloudinary URL). Uploaded by any member via
+    // POST /groups/:id/dp (or optionally at creation).
+    profilePicture: { type: String, default: null },
+
     // Hidden from default browse (not deleted) once flagged inactive by the
     // stale-group job. See jobs/flagStaleGroups.js for the (commented,
     // manually-triggerable) job concept.
